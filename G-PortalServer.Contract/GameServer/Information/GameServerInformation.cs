@@ -1,6 +1,6 @@
 ﻿using System.Runtime.Serialization;
 
-namespace G_PortalServer
+namespace G_PortalServer.Contract
 {
     [DataContract]
     public class GameServerInformation

@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using CODE.Framework.Services.Client;
+using CODE.Framework.Wpf.Mvvm;
+using G_PortalServer.Contract;
 using System;
 using System.ComponentModel;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -27,7 +27,7 @@ namespace G_PortalServer
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             QueryCode = Properties.Settings.Default.QueryCode;
-            GetServerDetailsAsync();
+            GetServerDetails();
             _timer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, (s, ev) => TimerTick(s, ev), Application.Current.Dispatcher);
             _counter = new TimeSpan(0, 0, 30);
             _timer.Start();
@@ -46,7 +46,7 @@ namespace G_PortalServer
                 RefreshState = false;
                 _timer.Stop();
                 _counter = new TimeSpan(0, 0, 30);
-                GetServerDetailsAsync();
+                GetServerDetails();
                 _timer.Start();
                 RefreshState = true;
             }
@@ -58,33 +58,45 @@ namespace G_PortalServer
                 this.DragMove();
         }
 
-        private async Task GetServerDetailsAsync()
+        private void GetServerDetails()
         {
+            if (string.IsNullOrWhiteSpace(QueryCode))
+            {
+                return;
+            }
             StatusBuilder(G_PortalServer.Status.Loading);
             try
             {
-                var client = new HttpClient();
-                HttpResponseMessage response = await client.GetAsync($"https://api.g-portal.us/gameserver/query/{QueryCode}");
-                GameServerInformation server = null;
-
-                if (response != null && response.IsSuccessStatusCode)
+                AsyncWorker.Execute(() =>
                 {
-                    var result = await response.Content.ReadAsStringAsync();
-                    server = JsonConvert.DeserializeObject<GameServerInformation>(result);
-                    StatusBuilder(G_PortalServer.Status.Ready);
-                }
+                    GetGameServerResponse response = null;
+                    var request = new GetGameServerRequest
+                    {
+                        QueryCode = QueryCode
+                    };
 
-                if (server != null)
+                    ServiceClient.Call<IGameServerService>(s => { response = s.GetGameServer(request); });
+                    return response;
+                }, response =>
                 {
-                    CurrentPlayers = server.CurrentPlayers;
-                    MaxPlayers = server.MaxPlayers;
-                    Key = server.Key;
-                    Port = server.Port;
-                    IPAddress = server.IPAddress;
-                    ServerName = server.Name;
-                    ToggleOnlineState(server.Online);
-                    PlayerText();
-                }
+                    if (response != null)
+                    {
+                        var server = response.Server;
+                        CurrentPlayers = server.CurrentPlayers;
+                        MaxPlayers = server.MaxPlayers;
+                        Key = server.Key;
+                        Port = server.Port;
+                        IPAddress = server.IPAddress;
+                        ServerName = server.Name;
+                        ToggleOnlineState(server.Online);
+                        PlayerText();
+                        StatusBuilder(G_PortalServer.Status.Ready);
+                    }
+                    else
+                    {
+                        StatusBuilder(G_PortalServer.Status.Error);
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -93,9 +105,16 @@ namespace G_PortalServer
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void Refresh(object sender, RoutedEventArgs e)
         {
-            GetServerDetailsAsync();
+            if (string.IsNullOrWhiteSpace(QueryCode))
+            {
+                MessageBox.Show("Please provide a query code.");
+            }
+            else
+            {
+                GetServerDetails();
+            }
         }
 
         private string _status;

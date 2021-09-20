@@ -22,6 +22,11 @@
 
   <ItemGroup>
     <PackageReference Include="CODE.Framework.Services.Client" Version="1.5.14" />
+    <PackageReference Include="CODE.Framework.Wpf.Mvvm" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\G-PortalServer.Implementation\G-PortalServer.Implementation.csproj" />
   </ItemGroup>
 
   <ItemGroup>

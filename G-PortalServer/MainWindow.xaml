@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:G_PortalServer"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="400" WindowStyle="None">
+        Title="MainWindow" Height="420" Width="370" WindowStyle="None" ResizeMode="NoResize">
     <Window.Resources>
         <Style TargetType="Button" x:Key="WindowButton" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="Transparent"/>
@@ -71,7 +71,7 @@
                 <TextBox Text="{Binding QueryCode}" Grid.Column="1" VerticalContentAlignment="Center"/>
                 <Button Content="Set" Grid.Column="2" Background="Transparent" Foreground="WhiteSmoke" Click="SetQueryCode"/>
                 <Button Grid.Column="3" IsEnabled="{Binding RefreshState}"
-                Content="Refresh" HorizontalAlignment="Right" Width="100" Click="Button_Click"
+                Content="Refresh" HorizontalAlignment="Right" Width="100" Click="Refresh"
                     Background="Transparent" Foreground="WhiteSmoke" BorderThickness="0" FontWeight="Bold"/>
             </Grid>
             <TextBlock Text="Online" Style="{StaticResource ServerLabel}" Grid.Row="1"/>
@@ -90,7 +90,7 @@
         </Grid>
         <Grid Grid.Row="2" Background="LightGray">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="1"/>
                 <!--Vertical Line-->
                 <ColumnDefinition />

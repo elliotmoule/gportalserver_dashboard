@@ -1,3 +1,7 @@
 .vs/
 G-PortalServer/bin/
 G-PortalServer/obj/
+G-PortalServer.Contract/bin/
+G-PortalServer.Contract/obj/
+G-PortalServer.Implementation/bin/
+G-PortalServer.Implementation/obj/
