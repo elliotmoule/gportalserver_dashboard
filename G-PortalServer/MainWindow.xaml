@@ -19,16 +19,13 @@
         </Style>
 
     </Window.Resources>
-    <Grid Background="Black">
+    <Grid Background="#191919">
         <Grid.RowDefinitions>
             <RowDefinition Height="30"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="20"/>
         </Grid.RowDefinitions>
-        <Grid Grid.Row="0" MouseDown="Border_MouseDown">
-            <Grid.Background>
-                <SolidColorBrush Opacity="0.2" Color="White"/>
-            </Grid.Background>
+        <Grid Grid.Row="0" MouseDown="Border_MouseDown" Background="#3d3d3d">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />
@@ -40,15 +37,16 @@
                        HorizontalAlignment="Center" VerticalAlignment="Center"
                        Foreground="WhiteSmoke" Grid.Column="1"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Grid.Column="2">
-                <Button Content="&#x1F5D5;" Style="{StaticResource WindowButton}" Click="Minimise"/>
+                <Button Content="&#x1F5D5;" Style="{StaticResource WindowButton}" Click="Minimise_Click"/>
                 <!--<Button Content="&#x1F5D6;" Style="{StaticResource WindowButton}" IsEnabled="False"/>-->
-                <Button Content="&#x1F5D9;" Style="{StaticResource WindowButton}" Click="Close"/>
+                <Button Content="&#x1F5D9;" Style="{StaticResource WindowButton}" Click="Close_Click"/>
             </StackPanel>
         </Grid>
         <Image Source="/Gportal.png" Grid.Row="1" Stretch="Uniform" Width="100" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15"/>
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
-                <RowDefinition Height="40"/>
+                <RowDefinition Height="45"/>
+                <RowDefinition />
                 <RowDefinition />
                 <RowDefinition />
                 <RowDefinition />
@@ -60,19 +58,26 @@
                 <ColumnDefinition Width="100"/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
-            <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,10">
+            <Grid Grid.Column="0" Grid.Row="0" Grid.ColumnSpan="2" Margin="5,10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="80"/>
-                    <ColumnDefinition />
+                    <ColumnDefinition Width="70"/>
+                    <ColumnDefinition Width="40"/>
                     <ColumnDefinition Width="40"/>
                     <ColumnDefinition />
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Query Code" Foreground="WhiteSmoke" VerticalAlignment="Center"/>
-                <TextBox Text="{Binding QueryCode}" Grid.Column="1" VerticalContentAlignment="Center"/>
+                <TextBox Text="{Binding QueryCode}" Grid.Column="1" VerticalContentAlignment="Center" TextChanged="QueryCode_TextChanged"/>
                 <Button Content="Set" Grid.Column="2" Background="Transparent" Foreground="WhiteSmoke" Click="SetQueryCode"/>
-                <Button Grid.Column="3" IsEnabled="{Binding RefreshState}"
-                Content="Refresh" HorizontalAlignment="Right" Width="100" Click="Refresh"
-                    Background="Transparent" Foreground="WhiteSmoke" BorderThickness="0" FontWeight="Bold"/>
+                <Viewbox Width="40" Height="40" Grid.Column="3" Margin="5,0"
+                         Visibility="{Binding QueryCodeSavedVisibility}" ToolTip="Query Code has been Saved!">
+                    <Canvas Width="40" Height="40" Background="Transparent">
+                        <Path Fill="Green" Data="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                    </Canvas>
+                </Viewbox>
+                <Button Grid.Column="4" IsEnabled="{Binding RefreshState}"
+                Content="Refresh" HorizontalAlignment="Right" Width="100" Click="Refresh_Click"
+                    Background="Transparent" Foreground="WhiteSmoke" BorderThickness="1" FontWeight="Bold"/>
             </Grid>
             <TextBlock Text="Online" Style="{StaticResource ServerLabel}" Grid.Row="1"/>
             <TextBlock Text="Name" Style="{StaticResource ServerLabel}" Grid.Row="2"/>
@@ -80,26 +85,37 @@
             <TextBlock Text="IP Address" Style="{StaticResource ServerLabel}" Grid.Row="4"/>
             <TextBlock Text="Port" Style="{StaticResource ServerLabel}" Grid.Row="5"/>
             <TextBlock Text="Key" Style="{StaticResource ServerLabel}" Grid.Row="6"/>
-            <Ellipse Grid.Column="1" Grid.Row="1" Margin="0,4"
+            <TextBlock Text="Game Address" Style="{StaticResource ServerLabel}" Grid.Row="7"/>
+
+            <Border BorderThickness="0" Grid.Row="1" Grid.Column="1" ToolTip="{Binding OnlineStatusTooltip}" HorizontalAlignment="Stretch" Background="Transparent">
+                <Ellipse Margin="0,4" 
                 Fill="{Binding Online}" Width="10" Height="10" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+            </Border>
             <TextBlock Text="{Binding ServerName}" Foreground="WhiteSmoke" Grid.Row="2" Grid.Column="1"/>
             <TextBlock Text="{Binding Players}" Foreground="WhiteSmoke" Grid.Row="3" Grid.Column="1"/>
             <TextBlock Text="{Binding IPAddress}" Foreground="WhiteSmoke" Grid.Row="4" Grid.Column="1"/>
             <TextBlock Text="{Binding Port}" Foreground="WhiteSmoke" Grid.Row="5" Grid.Column="1"/>
             <TextBlock Text="{Binding Key}" Foreground="WhiteSmoke" Grid.Row="6" Grid.Column="1"/>
+            <TextBlock Text="{Binding GameAddress}" Foreground="WhiteSmoke" Grid.Row="7" Grid.Column="1"
+                       ToolTip="Right-click to copy to clipboard!">
+                <TextBlock.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Copy to Clipboard" Click="CopyIPAddress_Click"/>
+                    </ContextMenu>
+                </TextBlock.ContextMenu>
+            </TextBlock>
         </Grid>
-        <Grid Grid.Row="2" Background="LightGray">
+        <Grid Grid.Row="2" Background="#3d3d3d">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="1"/>
-                <!--Vertical Line-->
                 <ColumnDefinition />
                 <ColumnDefinition Width="65"/>
             </Grid.ColumnDefinitions>
-            <TextBox Text="{Binding Status}" Background="Transparent" BorderThickness="0"/>
+            <TextBox Text="{Binding Status}" Background="Transparent" BorderThickness="0" Foreground="WhiteSmoke"/>
             <Rectangle Fill="Gray" Grid.Column="1"/>
-            <TextBlock Text="Refresh Update:" Grid.Column="2" Margin="8,0"/>
-            <TextBlock Text="{Binding Countdown}" Grid.Column="3" Margin="10,0"/>
+            <TextBlock Text="Refresh Update:" Grid.Column="2" Margin="8,0" Foreground="WhiteSmoke"/>
+            <TextBlock Text="{Binding Countdown}" Grid.Column="3" Margin="10,0" Foreground="WhiteSmoke"/>
         </Grid>
     </Grid>
 </Window>

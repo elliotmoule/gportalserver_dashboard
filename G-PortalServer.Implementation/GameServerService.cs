@@ -20,6 +20,11 @@ namespace G_PortalServer.Implementation
                     if (!string.IsNullOrWhiteSpace(result))
                     {
                         response.Server = JsonConvert.DeserializeObject<GameServerInformation>(result);
+
+                        if (!response.Server.Online && httpResponse.IsSuccessStatusCode && response.Server.Queried)
+                        {
+                            response.Server.Online = true;
+                        }
                     }
                 }
 

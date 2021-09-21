@@ -16,17 +16,30 @@ namespace G_PortalServer
     /// </summary>
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
-        private DispatcherTimer _timer;
+        #region Ctor
         public MainWindow()
         {
             InitializeComponent();
             Loaded += MainWindow_Loaded;
             DataContext = this;
+            QueryCodeSavedVisibility = Visibility.Hidden;
+            StatusBuilder(G_PortalServer.Status.Unset);
         }
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private void NotifyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
+
+        #region Load & Display
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             QueryCode = Properties.Settings.Default.QueryCode;
+            if (!string.IsNullOrWhiteSpace(QueryCode))
+                QueryCodeSavedVisibility = Visibility.Visible;
             GetServerDetails();
             _timer = new DispatcherTimer(new TimeSpan(0, 0, 1), DispatcherPriority.Normal, (s, ev) => TimerTick(s, ev), Application.Current.Dispatcher);
             _counter = new TimeSpan(0, 0, 30);
@@ -34,37 +47,16 @@ namespace G_PortalServer
             RefreshState = true;
         }
 
-        private void TimerTick(object sender, EventArgs e)
-        {
-            Countdown = _counter.ToString("c");
-            if (_counter != TimeSpan.Zero)
-            {
-                _counter = _counter.Add(TimeSpan.FromSeconds(-1));
-            }
-            else
-            {
-                RefreshState = false;
-                _timer.Stop();
-                _counter = new TimeSpan(0, 0, 30);
-                GetServerDetails();
-                _timer.Start();
-                RefreshState = true;
-            }
-        }
-
-        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-                this.DragMove();
-        }
-
         private void GetServerDetails()
         {
             if (string.IsNullOrWhiteSpace(QueryCode))
             {
+                StatusBuilder(G_PortalServer.Status.Unset);
                 return;
             }
+            RefreshState = false;
             StatusBuilder(G_PortalServer.Status.Loading);
+            ToggleOnlineState(null);
             try
             {
                 AsyncWorker.Execute(() =>
@@ -91,11 +83,13 @@ namespace G_PortalServer
                         ToggleOnlineState(server.Online);
                         PlayerText();
                         StatusBuilder(G_PortalServer.Status.Ready);
+                        BuildGameAddress();
                     }
                     else
                     {
                         StatusBuilder(G_PortalServer.Status.Error);
                     }
+                    RefreshState = true;
                 });
             }
             catch (Exception ex)
@@ -105,25 +99,10 @@ namespace G_PortalServer
             }
         }
 
-        private void Refresh(object sender, RoutedEventArgs e)
+        private void BuildGameAddress()
         {
-            if (string.IsNullOrWhiteSpace(QueryCode))
-            {
-                MessageBox.Show("Please provide a query code.");
-            }
-            else
-            {
-                GetServerDetails();
-            }
-        }
-
-        private string _status;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        private void NotifyChanged([CallerMemberName] string propertyName = "")
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (!string.IsNullOrWhiteSpace(IPAddress) && Port > 0)
+                GameAddress = $"{IPAddress}:{Port - 1}";
         }
 
         private void StatusBuilder(Status status)
@@ -131,17 +110,113 @@ namespace G_PortalServer
             Status = $"{status}...";
         }
 
-        private void ToggleOnlineState(bool online)
+        private void ToggleOnlineState(bool? online)
         {
-            Online = online ? Brushes.Green : Brushes.Red;
+            OnlineStatusTooltip = "Server is currently ";
+            Online = online.HasValue ? (online.Value ? Brushes.Green : Brushes.Red) : Brushes.Blue;
+            if (online.HasValue)
+            {
+                if (online.Value)
+                {
+                    Online = Brushes.Green;
+                    OnlineStatusTooltip += "Online!";
+                }
+                else
+                {
+                    Online = Brushes.Red;
+                    OnlineStatusTooltip += "Offline!";
+                }
+            }
+            else
+            {
+                Online = Brushes.Blue;
+                OnlineStatusTooltip += "Being Checked!";
+            }
         }
 
         private void PlayerText()
         {
             Players = $"{CurrentPlayers}/{MaxPlayers}";
         }
+        #endregion
 
-        private TimeSpan _counter;
+        #region Actions
+        private void TimerTick(object sender, EventArgs e)
+        {
+            Countdown = _counter.ToString("c");
+            if (_counter != TimeSpan.Zero)
+            {
+                CountDown();
+            }
+            else
+            {
+                ResetTimer();
+            }
+        }
+
+        private void CountDown()
+        {
+            _counter = _counter.Add(TimeSpan.FromSeconds(-1));
+        }
+
+        private void ResetTimer()
+        {
+            RefreshState = false;
+            _timer.Stop();
+            _counter = new TimeSpan(0, 0, 30);
+            GetServerDetails();
+            _timer.Start();
+            RefreshState = true;
+        }
+
+        private void Border_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                this.DragMove();
+        }
+
+        private void Refresh_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(QueryCode))
+            {
+                MessageBox.Show("Please provide a query code.");
+            }
+            else
+            {
+                ResetTimer();
+                GetServerDetails();
+            }
+        }
+
+        private void Minimise_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            _timer.Stop();
+            App.Current.Shutdown();
+        }
+
+        private void SetQueryCode(object sender, RoutedEventArgs e)
+        {
+            Properties.Settings.Default.QueryCode = QueryCode;
+            Properties.Settings.Default.Save();
+            QueryCodeSavedVisibility = Visibility.Visible;
+        }
+
+        private void CopyIPAddress_Click(object sender, RoutedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(GameAddress))
+                Clipboard.SetText(GameAddress);
+        }
+
+        private void QueryCode_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            QueryCodeSavedVisibility = Visibility.Hidden;
+        }
+        #endregion
 
         #region Properties
         public string Status
@@ -250,6 +325,18 @@ namespace G_PortalServer
             }
         }
 
+        private string _gameAddress;
+
+        public string GameAddress
+        {
+            get { return _gameAddress; }
+            set
+            {
+                _gameAddress = value;
+                NotifyChanged(nameof(GameAddress));
+            }
+        }
+
         private string _countdown;
 
         public string Countdown
@@ -285,30 +372,44 @@ namespace G_PortalServer
                 NotifyChanged(nameof(QueryCode));
             }
         }
+
+        private Visibility _queryCodeSavedVisibility;
+
+        public Visibility QueryCodeSavedVisibility
+        {
+            get { return _queryCodeSavedVisibility; }
+            set
+            {
+                _queryCodeSavedVisibility = value;
+                NotifyChanged(nameof(QueryCodeSavedVisibility));
+            }
+        }
+
+        private string _onlineStatusTooltip;
+
+        public string OnlineStatusTooltip
+        {
+            get { return _onlineStatusTooltip; }
+            set
+            {
+                _onlineStatusTooltip = value;
+                NotifyChanged(nameof(OnlineStatusTooltip));
+            }
+        }
         #endregion
 
-        private void Minimise(object sender, RoutedEventArgs e)
-        {
-            WindowState = WindowState.Minimized;
-        }
-
-        private void Close(object sender, RoutedEventArgs e)
-        {
-            _timer.Stop();
-            App.Current.Shutdown();
-        }
-
-        private void SetQueryCode(object sender, RoutedEventArgs e)
-        {
-            Properties.Settings.Default.QueryCode = QueryCode;
-            Properties.Settings.Default.Save();
-        }
+        #region Fields
+        private DispatcherTimer _timer;
+        private TimeSpan _counter;
+        private string _status;
+        #endregion
     }
 
     public enum Status
     {
         Loading,
         Ready,
-        Error
+        Error,
+        Unset
     }
 }
